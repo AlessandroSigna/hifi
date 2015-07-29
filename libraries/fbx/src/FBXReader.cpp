@@ -12,11 +12,15 @@
 #include <iostream>
 #include <QBuffer>
 #include <QDataStream>
+#include <QImage>
 #include <QIODevice>
 #include <QStringList>
 #include <QTextStream>
 #include <QtDebug>
 #include <QtEndian>
+#include <QVector>
+
+
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -38,6 +42,7 @@
 //#define DEBUG_FBXREADER
 
 using namespace std;
+
 
 struct TextureParam {
     glm::vec2 UVTranslation;
@@ -1456,6 +1461,37 @@ void buildModelMesh(ExtractedMesh& extracted) {
 
 
 
+
+// returns a value performing bounds checking
+const int clamp(int pX, int pMax) {
+    if (pX > pMax) {
+        return pMax;
+    } else if (pX < 0) {
+        return 0;
+    } else {
+        return pX;
+    }
+}
+
+
+// determine intensity of pixel, from 0 to 1
+const double intensity(const QRgb& pPixel) {
+    const double r = static_cast<double>(qRed(pPixel));
+    const double g = static_cast<double>(qGreen(pPixel));
+    const double b = static_cast<double>(qBlue(pPixel));
+
+    const double average = (r + g + b) / 3.0;
+
+    return average / 255.0;
+}
+
+// transform -1 - 1 to 0 - 255
+const double map_component(double pX) {
+    return (pX + 1.0) * (255.0 / 2.0);
+}
+
+
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
     QHash<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
@@ -2047,7 +2083,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
 
                         } else if (type.contains("bump") || type.contains("normal")) {
                             bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-                        
+
                         } else if (type.contains("specular") || type.contains("reflection")) {
                             specularTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));    
                             
@@ -2327,6 +2363,71 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                 QString bumpTextureID = bumpTextures.value(childID);
                 if (!bumpTextureID.isNull()) {
                     normalTexture = getTexture(bumpTextureID, textureNames, textureFilenames, textureContent, textureParams);
+                    
+                    // normalTexture might be a normal map (RGB texture) or a bump map (grayscale texture)
+                    // if it's a bump map it has to be converted in a normal map
+                    QImage nTexture;
+                    nTexture.loadFromData(normalTexture.content);
+                    
+                    if (nTexture.isGrayscale()) {
+                        // The conversion is done using the Sobel Filter to calculate the derivatives from the grayscale image
+                        double pStrength = 2.0;
+                        int width = nTexture.width();
+                        int height = nTexture.height();
+                        QImage result(width, height, nTexture.format());
+
+                        for (size_t row = 0; row < width; row++) {
+                            for (size_t column = 0; column < height; column++) {
+                                
+                                // surrounding pixels
+                                const QRgb topLeft = nTexture.pixel(clamp(row - 1, width - 1), clamp(column - 1, height - 1));
+                                const QRgb top = nTexture.pixel(clamp(row - 1, width - 1), clamp(column, height - 1));
+                                const QRgb topRight = nTexture.pixel(clamp(row - 1, width - 1), clamp(column + 1, height - 1));
+                                const QRgb right = nTexture.pixel(clamp(row, width - 1), clamp(column + 1, height - 1));
+                                const QRgb bottomRight = nTexture.pixel(clamp(row + 1, width - 1), clamp(column + 1, height - 1));
+                                const QRgb bottom = nTexture.pixel(clamp(row + 1, width - 1), clamp(column, height - 1));
+                                const QRgb bottomLeft = nTexture.pixel(clamp(row + 1, width - 1), clamp(column - 1, height - 1));
+                                const QRgb left = nTexture.pixel(clamp(row, width - 1), clamp(column - 1, height - 1));
+                                
+                                // their intensities
+                                const double tl = intensity(topLeft);
+                                const double t = intensity(top);
+                                const double tr = intensity(topRight);
+                                const double r = intensity(right);
+                                const double br = intensity(bottomRight);
+                                const double b = intensity(bottom);
+                                const double bl = intensity(bottomLeft);
+                                const double l = intensity(left);
+                                
+                                // apply the sobel filter
+                                const double dX = (tr + 2.0 * r + br) - (tl + 2.0 * l + bl);
+                                const double dY = (bl + 2.0 * b + br) - (tl + 2.0 * t + tr);
+                                const double dZ = 1.0 / pStrength;
+
+                                QVector3D v(dX, dY, dZ);
+                                v.normalize();
+
+                                // convert to rgb
+                                QRgb value = qRgb(map_component(v.x()), map_component(v.y()), map_component(v.z()));
+                                result.setPixel(row, column, value);
+                            }
+                        }
+
+                        // overwrite the bump map with the new computed normal map
+                        QBuffer buffer(&normalTexture.content);
+                        buffer.open(QIODevice::WriteOnly);
+                        result.save(&buffer, "PNG");
+                        buffer.close();
+
+
+
+                        FILE * pFile;
+                        pFile = fopen(normalTexture.filename + ".txt", "wb");
+                        fwrite(normalTexture.content.data(), sizeof(char), normalTexture.content.length(), pFile);
+                        fclose(pFile);
+                        
+                    }
+
                     generateTangents = true;
 
                     normalTexture.texcoordSet = matchTextureUVSetToAttributeChannel(normalTexture.texcoordSetName, extracted.texcoordSetMap);
