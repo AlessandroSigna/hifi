@@ -2376,8 +2376,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     // if it's a bump map it has to be converted in a normal map
                     QImage nTexture;
                     nTexture.loadFromData(normalTexture.content);
-
-                    //QImage::Format form = nTexture.format();
                     
                     if (nTexture.isGrayscale()) {
                         // The conversion is done using the Sobel Filter to calculate the derivatives from the grayscale image
