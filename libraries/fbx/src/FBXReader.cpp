@@ -20,6 +20,8 @@
 #include <QtEndian>
 #include <QVector>
 
+#include <QString>
+#include <QByteArray>
 
 
 #include <glm/gtc/quaternion.hpp>
@@ -1490,6 +1492,16 @@ const double map_component(double pX) {
     return (pX + 1.0) * (255.0 / 2.0);
 }
 
+string getFileExt(const string& s) {
+
+    size_t i = s.rfind('.', s.length());
+    if (i != string::npos) {
+        return(s.substr(i + 1, s.length() - i));
+    }
+
+    return("");
+}
+
 
 
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
@@ -2368,6 +2380,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     // if it's a bump map it has to be converted in a normal map
                     QImage nTexture;
                     nTexture.loadFromData(normalTexture.content);
+
+                    //QImage::Format form = nTexture.format();
                     
                     if (nTexture.isGrayscale()) {
                         // The conversion is done using the Sobel Filter to calculate the derivatives from the grayscale image
@@ -2414,9 +2428,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                         }
 
                         // overwrite the bump map with the new computed normal map
+                        string textExt(getFileExt(normalTexture.filename.data()));
                         QBuffer buffer(&normalTexture.content);
                         buffer.open(QIODevice::WriteOnly);
-                        result.save(&buffer, "PNG");
+                        result.save(&buffer, textExt.c_str());
                         buffer.close();
 
 
