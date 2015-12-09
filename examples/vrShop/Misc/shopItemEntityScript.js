@@ -29,7 +29,9 @@
     var deltaRY = 0;
     var radius;
     var inspectingEntity = null;
+    var inspectPanel = null;
     
+    var BG_IMAGE_URL = TOOL_ICON_URL + "recording-record.svg"
     var MIN_DIMENSION_THRESHOLD = null;
     var MAX_DIMENSION_THRESHOLD = null;
     var PENETRATION_THRESHOLD = 0.2;
@@ -57,6 +59,11 @@
         preload: function(entityID) {
             this.entityID = entityID;
             Script.update.connect(update);
+    
+            MIN_DIMENSION_THRESHOLD = Vec3.length(Entities.getEntityProperties(this.entityID).dimensions)/2;
+            MAX_DIMENSION_THRESHOLD = Vec3.length(Entities.getEntityProperties(this.entityID).dimensions)*2;
+            radius = Vec3.length(Entities.getEntityProperties(this.entityID).dimensions) / 2.0;
+            inspectRadius = Vec3.length(Entities.getEntityProperties(this.entityID).dimensions) / 2.0; //??
         },
         
         setRightHand: function () {
@@ -69,6 +76,54 @@
             hand = MyAvatar.leftHandPose;
         },
         
+        createInspectOverlay: function () {
+            inspectPanel = new OverlayPanel({
+                anchorPositionBinding: { avatar: "MyAvatar" },
+                offsetPosition: { x: 0, y: 0.4, z: -1 },
+                isFacingAvatar: true
+            });
+            
+            var background = new Image3DOverlay({
+                url: BG_IMAGE_URL,
+                dimensions: {
+                    x: 0.5,
+                    y: 0.5,
+                },
+                isFacingAvatar: false,
+                alpha: 1.0,
+                ignoreRayIntersection: false,
+                offsetPosition: {
+                    x: 0,
+                    y: 0,
+                    z: -0.001
+                }
+            });
+            
+            inspectPanel.addChild(background);
+            
+            var text = mainPanel.addChild(new Text3DOverlay({
+                text: "INSPECT AREA",
+                isFacingAvatar: true,
+                alpha: 1.0,
+                ignoreRayIntersection: false,
+                offsetPosition: {
+                    x: 0.1,
+                    y: -0.15,
+                    z: 0.001
+                },
+                dimensions: { x: textWidth, y: textHeight },
+                backgroundColor: { red: 0, green: 0, blue: 0 },
+                color: { red: 255, green: 255, blue: 255 },
+                topMargin: textMargin,
+                leftMargin: textMargin,
+                bottomMargin: textMargin,
+                rightMargin: textMargin,
+                lineHeight: lineHeight,
+                alpha: 0.9,
+                backgroundAlpha: 0.9
+            }));
+        },
+        
         startNearGrab: function () {
             
             print("I was just grabbed... entity:" + this.entityID);
@@ -77,15 +132,17 @@
             
             // Everytime we grab, we create the inspectEntity and the inspectAreaOverlay in front of the avatar
             
-                                
-            var entityProperties = Entities.getEntityProperties(this.entityID);
+            // Create overlay
+            createInspectOverlay();
         
             if(!inspecting) {
+                var entityProperties = Entities.getEntityProperties(this.entityID);
+                
                 inspectingEntity = Entities.addEntity({
                     type: "Box",
                     name: "inspectionEntity",
-                    position: entityProperties.position,
-                    dimensions: entityProperties.dimensions,
+                    position: Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.getOrientation()), inspectRadius * 3.0)), // maybe we can avoid to set this here
+                    dimensions: entityProperties.dimensions, //??
                     rotation: entityProperties.rotation,
                     collisionsWillMove: false,
                     ignoreForCollisions: true,
@@ -106,6 +163,9 @@
                 inspecting = false;
                 //deletentityforinspecting
                 Controller.disableMapping(MAPPING_NAME);
+                setEntityCustomData('statusKey', this.entityID, {
+                    status: "null"
+                });
             } else if (onShelf === true) {
                 //create a copy of this entity if it is the first grab
                 var entityProperties = Entities.getEntityProperties(this.entityID);
@@ -154,6 +214,9 @@
             Entities.editEntity(this.entityID, { ignoreForCollisions: true });
             print("zoneID is " + zoneID);
             
+            // Destroy overlay
+            inspectPanel.destroy();
+            
             if (zoneID !== null) {
                 
                 print("Got here. Entity ID is: " + this.entityID);
@@ -166,11 +229,7 @@
                 
                 var statusObj = getEntityCustomData('statusKey', this.entityID, null);
                 
-                if (statusObj.status == "inspect") { // if I'm releasing in the 
-                    MIN_DIMENSION_THRESHOLD = Vec3.length(Entities.getEntityProperties(this.entityID).dimensions)/2;
-                    MAX_DIMENSION_THRESHOLD = Vec3.length(Entities.getEntityProperties(this.entityID).dimensions)*2;
-                    radius = Vec3.length(Entities.getEntityProperties(this.entityID).dimensions) / 2.0;
-                
+                if (statusObj.status == "inspect") { // if I'm releasing in the inspectZone
                     inspecting = true;
                     print("released inside the inspection area");
                 } else if (statusObj.status == "inCart") { // in cart

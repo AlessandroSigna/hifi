@@ -17,6 +17,7 @@
 
     var _this;
     var hand;
+    var startInspecting = false;
     var inspectingMyItem = false;
     var waitingForBumpReleased = false;
     var overlayLine = null;
@@ -40,6 +41,8 @@
     };
     
     function update(deltaTime) {
+        _this.positionUpdate();
+        
         _this.updateRay();
         _this.overlayLineOn(pickRay.origin, Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH)), COLOR);
         var bumperPressed = Controller.getValue(Controller.Standard.RB);
@@ -64,6 +67,7 @@
             var ownerObj = getEntityCustomData('ownerKey', this.entityID, null);
             if (ownerObj.ownerID === MyAvatar.sessionUUID) {
                 inspectingMyItem = true;
+                inspectRadius = Vec3.length(Entities.getEntityProperties(this.entityID).dimensions) / 2.0; //??
                 Script.update.connect(update);
                 print("PRELOAD USER DATA: " + Entities.getEntityProperties(_this.entityID).userData);
             }
@@ -74,65 +78,51 @@
             var itemOwnerObj = getEntityCustomData('ownerKey', data.id, null);
             print("------- The owner of the item is: " + ((itemOwnerObj == null) ? itemOwnerObj : itemOwnerObj.ownerID));
             print("item ID: " + data.id);
-                    
-            var mapping = Controller.newMapping(MAPPING_NAME);
-            mapping.from(Controller.Standard.LX).to(function (value) {
-                deltaLX = value;
-            });
-            mapping.from(Controller.Standard.LY).to(function (value) {
-                deltaLY = value;
-            });
-            mapping.from(Controller.Standard.RX).to(function (value) {
-                deltaRX = value;
-            });
-            mapping.from(Controller.Standard.RY).to(function (value) {
-                deltaRY = value;
-            });
-            Controller.enableMapping(MAPPING_NAME);
             
+            var inspectOwnerObj = getEntityCustomData('ownerKey', this.entityID, null);
+            print("------- The owner of the inspectZone is: " + ((inspectOwnerObj == null) ? inspectOwnerObj : inspectOwnerObj.ownerID));
+            print("zone ID: " + this.entityID);
             
-            var cartOwnerObj = getEntityCustomData('ownerKey', this.entityID, null);
-            print("------- The owner of the cart is: " + ((cartOwnerObj == null) ? cartOwnerObj : cartOwnerObj.ownerID));
-            print("cart ID: " + this.entityID);
-            
-            if (cartOwnerObj == null) {
-                print("The cart doesn't have a owner.");
+            if (inspectOwnerObj == null) {
+                print("The inspectZone doesn't have a owner.");
                 Entities.deleteEntity(data.id);
             }
             
-            if (itemOwnerObj.ownerID === cartOwnerObj.ownerID) {
-                // if itemsQuantity == fullCart resize all the items present in the cart and change the scaleFactor for this and next insert
-
-                print("Going to put item in the cart!");
-                var itemsQuantity = itemsID.length;
-                
-                itemsID[itemsQuantity] = data.id;
-                
-                var oldDimension = Entities.getEntityProperties(data.id).dimensions;
-                Entities.editEntity(data.id, { dimensions: Vec3.multiply(oldDimension, scaleFactor) });
-                print("Item resized!");
-                
-                Entities.editEntity(data.id, { velocity: MyAvatar.getVelocity() }); // MyAvatar.getVelocity() should be zero at this time
-                var oldPosition = Entities.getEntityProperties(data.id).position;
-                var cartPosition = Entities.getEntityProperties(this.entityID).position;
-                relativeItemsPosition[itemsQuantity] = Vec3.subtract(oldPosition, cartPosition);
-                
-                
-                // debug prints
-                //Vec3.print("Relative position saved: ", relativeItemsPosition[(itemsQuantity === 1) ? itemsQuantity : itemsQuantity.num]);      
-                itemsQuantity = itemsID.length;
-                print("Item " + itemsQuantity + itemsID[itemsQuantity-1] + " inserted! New quantity: " + itemsQuantity);
-                relativeItemsPosition.forEach( function(p) { Vec3.print("", p) });
+            if (itemOwnerObj.ownerID === inspectOwnerObj.ownerID) {
+                startInspecting = true;
                 
                 setEntityCustomData('statusKey', data.id, {
-                    status: "inCart"
+                    status: "inspect"
                 });
                 
                 print("Set status!");
+                        
+                var mapping = Controller.newMapping(MAPPING_NAME);
+                mapping.from(Controller.Standard.LX).to(function (value) {
+                    deltaLX = value;
+                });
+                mapping.from(Controller.Standard.LY).to(function (value) {
+                    deltaLY = value;
+                });
+                mapping.from(Controller.Standard.RX).to(function (value) {
+                    deltaRX = value;
+                });
+                mapping.from(Controller.Standard.RY).to(function (value) {
+                    deltaRY = value;
+                });
+                Controller.enableMapping(MAPPING_NAME);
+
             }else {
-                print("Not your cart!");
+                print("Not your inspect zone!");
                 Entities.deleteEntity(data.id);
             }
+        },
+        
+        positionUpdate: function() {
+            //position
+            newPosition = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.getOrientation()), inspectRadius * 3.0)); 
+                    
+            Entities.editEntity(_this.entityID, { position: newPosition });
         },
         
         updateRay: function(){
