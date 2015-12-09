@@ -74,10 +74,37 @@
             print("I was just grabbed... entity:" + this.entityID);
             Entities.editEntity(this.entityID, { ignoreForCollisions: false });
             Entities.editEntity(this.entityID, { dimensions: originalDimensions });
-            if (inspecting) {
+            
+            // Everytime we grab, we create the inspectEntity and the inspectAreaOverlay in front of the avatar
+            
+                                
+            var entityProperties = Entities.getEntityProperties(this.entityID);
+        
+            if(!inspecting) {
+                inspectingEntity = Entities.addEntity({
+                    type: "Box",
+                    name: "inspectionEntity",
+                    position: entityProperties.position,
+                    dimensions: entityProperties.dimensions,
+                    rotation: entityProperties.rotation,
+                    collisionsWillMove: false,
+                    ignoreForCollisions: true,
+                    visible: false,
+                    script: "C:\\Users\\Proprietario\\Desktop\\shopInspectionEntityScript.js", // I don't know, ask desktop
+                    userData: JSON.stringify({
+                        ownerKey: {
+                            ownerID: MyAvatar.sessionUUID
+                        },
+                        itemKey: {
+                            itemID: this.entityID
+                        }
+                    })
+                });
+            }
+            
+            if (inspecting === true) {
                 inspecting = false;
                 //deletentityforinspecting
-                Entities.deleteEntity(inspectingEntity);
                 Controller.disableMapping(MAPPING_NAME);
             } else if (onShelf === true) {
                 //create a copy of this entity if it is the first grab
@@ -128,6 +155,7 @@
             print("zoneID is " + zoneID);
             
             if (zoneID !== null) {
+                
                 print("Got here. Entity ID is: " + this.entityID);
                 //Entities.callEntityMethod(zoneID, 'doSomething', this.entityID);
                 var dataJSON = {
@@ -138,64 +166,24 @@
                 
                 var statusObj = getEntityCustomData('statusKey', this.entityID, null);
                 
-                if (statusObj.status == "inCart") {
-                    print("inCart is TRUE");
-                    inCart = true;
-                }
-            } else {
-                var itemY = Entities.getEntityProperties(this.entityID).position.y;
-                var inspectionAreaThreshold = MyAvatar.position.y + ((MyAvatar.getHeadPosition().y - MyAvatar.position.y) / 2);
-                
-                if (itemY >= inspectionAreaThreshold) {
-                    inspecting = true;
-                    print("released inside the inspection area");
-                    
+                if (statusObj.status == "inspect") { // if I'm releasing in the 
                     MIN_DIMENSION_THRESHOLD = Vec3.length(Entities.getEntityProperties(this.entityID).dimensions)/2;
                     MAX_DIMENSION_THRESHOLD = Vec3.length(Entities.getEntityProperties(this.entityID).dimensions)*2;
                     radius = Vec3.length(Entities.getEntityProperties(this.entityID).dimensions) / 2.0;
-                    // newPosition = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.getOrientation()), radius * 3.0)); // we need to tune this because we don't want it in the center but on the left
-                    
-                    
-                    var mapping = Controller.newMapping(MAPPING_NAME);
-                    mapping.from(Controller.Standard.LX).to(function (value) {
-                        deltaLX = value;
-                    });
-                    mapping.from(Controller.Standard.LY).to(function (value) {
-                        deltaLY = value;
-                    });
-                    mapping.from(Controller.Standard.RX).to(function (value) {
-                        deltaRX = value;
-                    });
-                    mapping.from(Controller.Standard.RY).to(function (value) {
-                        deltaRY = value;
-                    });
-                    Controller.enableMapping(MAPPING_NAME);
-                    
-                    var entityProperties = Entities.getEntityProperties(this.entityID);
                 
-                    inspectingEntity = Entities.addEntity({
-                        type: "Box",
-                        name: "inspectionEntity",
-                        position: entityProperties.position,
-                        dimensions: entityProperties.dimensions,
-                        rotation: entityProperties.rotation,
-                        collisionsWillMove: false,
-                        ignoreForCollisions: true,
-                        visible: false,
-                        script: "C:\\Users\\Proprietario\\Desktop\\shopInspectionEntityScript.js", // I don't know, ask desktop
-                        userData: JSON.stringify({
-                            ownerKey: {
-                                ownerID: MyAvatar.sessionUUID
-                            },
-                            itemKey: {
-                                itemID: this.entityID
-                            }
-                        })
-                    });
-                    
-                } else {
-                    Entities.deleteEntity(this.entityID);
+                    inspecting = true;
+                    print("released inside the inspection area");
+                } else if (statusObj.status == "inCart") { // in cart
+                    Entities.deleteEntity(inspectingEntity);
+                    print("inCart is TRUE");
+                    inCart = true;
+                } else { // any other zone
+                    Entities.deleteEntity(inspectingEntity);
                 }
+                
+            } else { // ZoneID is null, released somewhere that is not a zone
+                Entities.deleteEntity(inspectingEntity);
+                Entities.deleteEntity(this.entityID);
             }
         
         },
