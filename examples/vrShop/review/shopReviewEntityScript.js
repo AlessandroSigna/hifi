@@ -457,7 +457,7 @@
                     alpha: 0.8,
                     ignoreRayIntersection: false,
                     offsetPosition: {
-                        x: 0,
+                        x: -0.1,
                         y: 0.65,
                         z: 0
                     },

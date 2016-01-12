@@ -20,6 +20,8 @@
     
     var AGENT_REVIEW_CHANNEL = "reviewChannel";
     var NO_REVIEWS_AVAILABLE = "No reviews available";
+    var SEPARATOR = "Separator";
+    var CAMERA_REVIEW = "CameraReview";
     
     var ZERO_STAR_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/0Star.png";
     var ONE_STAR_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/1Star.png";
@@ -74,6 +76,9 @@
     var reviewIndex = 0;
     var reviewsNumber = 0;
     var dbMatrix = null;
+    
+    var separator = null;
+    var cameraReview = null;
     
     
     var pointer = new Image3DOverlay({          //maybe we want to use one pointer for each hand ?
@@ -210,6 +215,7 @@
                         
                         Messages.sendMessage(AGENT_REVIEW_CHANNEL, JSON.stringify(message));
                         print("Play sent to agent");
+                        
                     }
                     
                     if (tryOnAvatarButton == triggeredButton) {
@@ -353,6 +359,13 @@
                         
             Messages.sendMessage(AGENT_REVIEW_CHANNEL, JSON.stringify(message));
             print("Hide sent to agent");
+            
+            if (separator != null || cameraReview != null) {
+                Entities.editEntity(separator, { visible: true });
+                Entities.editEntity(separator, { locked: true });
+                Entities.editEntity(cameraReview, { visible: true });
+                Entities.editEntity(cameraReview, { locked: true });
+            }
         }
         
         _this.positionRotationUpdate();
@@ -409,6 +422,20 @@
         // var DBObj = getEntityCustomData('DBKey', Entities.getEntityProperties(e).id, null);
         // if (DBObj != null) { dataBaseID = DBObj.DBID }
     };
+    
+    function findItemByName(searchingPointEntityID, itemName) {
+        print("Looking for item: " + itemName);
+        var entitiesInZone = Entities.findEntities(Entities.getEntityProperties(searchingPointEntityID).position, (Entities.getEntityProperties(searchingPointEntityID).dimensions.x)*100); 
+        
+        for (var i = 0; i < entitiesInZone.length; i++) {
+            if (Entities.getEntityProperties(entitiesInZone[i]).name == itemName) {
+                print(itemName + " found! " + entitiesInZone[i]);
+                return entitiesInZone[i];
+            }
+        }
+        print("Item " + itemName + " not found");
+        return null;
+    };
 
     InspectEntity.prototype = {
         
@@ -447,6 +474,16 @@
                 });
                 _this.createInspectUI();
                 itemOriginalDimensions = Entities.getEntityProperties(inspectedEntityID).dimensions;
+                
+                // find separator and camera and hide
+                separator = findItemByName(inspectedEntityID, SEPARATOR);
+                Entities.editEntity(separator, { locked: false });
+                Entities.editEntity(separator, { visible: false });
+                print("Got here! Entity to hide: " + separator);
+                cameraReview = findItemByName(inspectedEntityID, CAMERA_REVIEW);
+                Entities.editEntity(cameraReview, { locked: false });
+                Entities.editEntity(cameraReview, { visible: false });
+                print("Got here! Entity to hide: " + cameraReview);
             } else {
                 Entities.deleteEntity(data.id);
             }
