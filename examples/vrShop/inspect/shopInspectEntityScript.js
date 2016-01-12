@@ -19,6 +19,7 @@
     Script.include(overlayManagerScript);
     
     var AGENT_REVIEW_CHANNEL = "reviewChannel";
+    var NO_REVIEWS_AVAILABLE = "No reviews available";
     
     var ZERO_STAR_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/0Star.png";
     var ONE_STAR_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/1Star.png";
@@ -530,6 +531,7 @@
                 print("The Id of the DB is: " + DBID);
                 infoObj = getEntityCustomData('infoKey', DBID, null);
                 var scoreAverage = null;
+                var reviewerName = null;
                 print("Info Obj is: " + infoObj);
                 
                 if(infoObj != null) {
@@ -542,15 +544,23 @@
                         scoreSum += dbMatrix[i].score;
                     }
                     
-                    scoreAverage = Math.round(scoreSum / dbMatrix.length);
+                    if (dbMatrix.length) {
+                        scoreAverage = Math.round(scoreSum / dbMatrix.length);
+                        reviewerName = dbMatrix[reviewIndex].name;
+                        
+                         var message = {
+                            command: "Show",
+                            clip_url: dbMatrix[reviewIndex].clip_url
+                        };
+                        
+                        Messages.sendMessage(AGENT_REVIEW_CHANNEL, JSON.stringify(message));
+                        print("Show sent to agent");
+                    } else {
+                        //some default value if the DB is empty?
+                        scoreAverage = 0;
+                        reviewerName = NO_REVIEWS_AVAILABLE;
+                    }
                     
-                     var message = {
-                        command: "Show",
-                        clip_url: dbMatrix[reviewIndex].clip_url
-                    };
-                    
-                    Messages.sendMessage(AGENT_REVIEW_CHANNEL, JSON.stringify(message));
-                    print("Show sent to agent");
                 }
                 
                 print ("Creating UI");
@@ -610,27 +620,71 @@
                 
                 mainPanel.addChild(aggregateScore);
                 
-                playButton = new Image3DOverlay({
-                    url: "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/Play.png",
-                    dimensions: {
-                        x: 0.08,
-                        y: 0.08
-                    },
-                    isFacingAvatar: false,
-                    alpha: 1,
-                    ignoreRayIntersection: false,
-                    offsetPosition: {
-                        x: 0.42,
-                        y: 0.27,
-                        z: 0
-                    },
-                    emissive: true,
-                });
-                
-                mainPanel.addChild(playButton);
+                if (dbMatrix.length) {
+                    
+                    playButton = new Image3DOverlay({
+                        url: "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/Play.png",
+                        dimensions: {
+                            x: 0.08,
+                            y: 0.08
+                        },
+                        isFacingAvatar: false,
+                        alpha: 1,
+                        ignoreRayIntersection: false,
+                        offsetPosition: {
+                            x: 0.42,
+                            y: 0.27,
+                            z: 0
+                        },
+                        emissive: true,
+                    });
+                    
+                    mainPanel.addChild(playButton);
+                    
+                    
+                    reviewerScore = new Image3DOverlay({
+                        url: starConverter(dbMatrix[reviewIndex].score),
+                        dimensions: {
+                            x: 0.15,
+                            y: 0.15
+                        },
+                        isFacingAvatar: false,
+                        alpha: 1,
+                        ignoreRayIntersection: true,
+                        offsetPosition: {
+                            x: 0.31,
+                            y: 0.26,
+                            z: 0
+                        },
+                        emissive: true,
+                    });
+                    
+                    mainPanel.addChild(reviewerScore);
+                    
+                    nextButton = new Image3DOverlay({
+                        url: "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/Next.png",
+                        dimensions: {
+                            x: 0.2,
+                            y: 0.2
+                        },
+                        isFacingAvatar: false,
+                        alpha: 1,
+                        ignoreRayIntersection: false,
+                        offsetPosition: {
+                            x: 0.36,
+                            y: 0.18,
+                            z: 0
+                        },
+                        emissive: true,
+                    });
+                    
+                    
+                    mainPanel.addChild(nextButton);
+                    
+                }
                 
                 textReviewerName = new Text3DOverlay({
-                        text: dbMatrix[reviewIndex].name,
+                        text: reviewerName,
                         isFacingAvatar: false,
                         alpha: 1.0,
                         ignoreRayIntersection: true,
@@ -653,44 +707,6 @@
                     
                 mainPanel.addChild(textReviewerName);
                 
-                reviewerScore = new Image3DOverlay({
-                    url: starConverter(dbMatrix[reviewIndex].score),
-                    dimensions: {
-                        x: 0.15,
-                        y: 0.15
-                    },
-                    isFacingAvatar: false,
-                    alpha: 1,
-                    ignoreRayIntersection: true,
-                    offsetPosition: {
-                        x: 0.31,
-                        y: 0.26,
-                        z: 0
-                    },
-                    emissive: true,
-                });
-                
-                mainPanel.addChild(reviewerScore);
-                
-                nextButton = new Image3DOverlay({
-                    url: "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/Next.png",
-                    dimensions: {
-                        x: 0.2,
-                        y: 0.2
-                    },
-                    isFacingAvatar: false,
-                    alpha: 1,
-                    ignoreRayIntersection: false,
-                    offsetPosition: {
-                        x: 0.36,
-                        y: 0.18,
-                        z: 0
-                    },
-                    emissive: true,
-                });
-                
-                
-                mainPanel.addChild(nextButton);
                 
                 if (wearable) {
                     tryOnAvatarButton = new Text3DOverlay({

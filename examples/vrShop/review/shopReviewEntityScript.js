@@ -17,7 +17,7 @@
     var START_RECORDING_TEXT = "Press the bumper to start recording the review";
     var STOP_RECORDING_TEXT = "Press the bumper to stop recording the review";
     var SHOPPING_CART_NAME = "Shopping cart";
-    var CAMERA_NAME = "Camera for reviews";
+    var CAMERA_NAME = "CameraReview";
     
     
     var RIGHT_HAND = 1;
@@ -334,7 +334,6 @@
                 if (dataBaseID) {
                     var anchorEntityForUI = findAnchorEntityForUI(entityID);
                     if (anchorEntityForUI) {
-                        Entities.editEntity(cameraEntity, { visible: true });
                         _this.createReviewUI(anchorEntityForUI);
                         rightController = new MyController(RIGHT_HAND);     //rightController and leftController are two objects
                         leftController = new MyController(LEFT_HAND);
@@ -355,16 +354,13 @@
                 recording = false;
             }
             
-            if (cameraEntity) {
-                Entities.editEntity(cameraEntity, { visible: false });
-                cameraEntity = null;
-            }
             if (cameraPanel) {
                 cameraPanel.destroy();
                 cameraPanel = null;
             }
             workDone = false;
             //itemToReview = null;
+            cameraEntity = null;
             dataBaseID = null;
             scoreAssigned = null;
             hoveredButton = null;
@@ -462,12 +458,12 @@
                         x: 0.1,
                         y: 0.1
                     },
-                    isFacingAvatar: true,
+                    isFacingAvatar: false,
                     alpha: 0.8,
                     ignoreRayIntersection: false,
                     offsetPosition: {
-                        x: 0.2,
-                        y: 0.1,
+                        x: 0,
+                        y: 0.65,
                         z: 0
                     },
                     emissive: true,
