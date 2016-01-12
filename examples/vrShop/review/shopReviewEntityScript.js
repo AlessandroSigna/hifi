@@ -14,8 +14,8 @@
     // var STAR_ON_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/3Star.png";
     // var STAR_OFF_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/1Star.png";
     var ANCHOR_ENTITY_FOR_UI_NAME = "anchorEntityForReviewUI";
-    var START_RECORDING_TEXT = "Press the bumper to start recording the review";
-    var STOP_RECORDING_TEXT = "Press the bumper to stop recording the review";
+    var START_RECORDING_TEXT = "Press the bumper to start recording";
+    var STOP_RECORDING_TEXT = "Press the bumper to stop recording";
     var SHOPPING_CART_NAME = "Shopping cart";
     var CAMERA_NAME = "CameraReview";
     
@@ -421,7 +421,7 @@
                     alpha: 1.0,
                     ignoreRayIntersection: true,
                     offsetPosition: {
-                        x: -0.3,
+                        x: -0.5,
                         y: 0,
                         z: 0
                     },
@@ -442,12 +442,7 @@
             
             cameraPanel = new OverlayPanel({
                 anchorPositionBinding: { entity: cameraEntity },
-                anchorRotationBinding: { entity: cameraEntity },
-                //anchorPositionBinding: { avatar: "MyAvatar"},
-                //anchorRotationBinding: { avatar: "MyAvatar" },
-                
-                //anchorPosition: Entities.getEntityProperties(_this.entityID).position,
-                //offsetPosition: Vec3.subtract(Entities.getEntityProperties(_this.entityID).position, MyAvatar.position),
+                //anchorRotationBinding: { entity: cameraEntity },
                 
                 isFacingAvatar: false
             });
