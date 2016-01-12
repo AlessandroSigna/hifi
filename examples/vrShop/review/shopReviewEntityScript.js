@@ -9,10 +9,7 @@
     var POINTER_ICON_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/Pointer.png";
     var STAR_ON_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/SingleStar_Yellow.png";
     var STAR_OFF_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/SingleStar_Black.png";
-    var RECORDING_ON_ICON_URL = "http://cdn.highfidelity.com/alan/production/icons/ICO_rec-active.svg";
-    var RECORDING_OFF_ICON_URL = "http://cdn.highfidelity.com/alan/production/icons/ICO_rec-inactive.svg";
-    // var STAR_ON_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/3Star.png";
-    // var STAR_OFF_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/1Star.png";
+    var RECORDING_ON_ICON_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/REC.png";
     var ANCHOR_ENTITY_FOR_UI_NAME = "anchorEntityForReviewUI";
     var START_RECORDING_TEXT = "Press the bumper to start recording";
     var STOP_RECORDING_TEXT = "Press the bumper to stop recording";
@@ -182,13 +179,13 @@
                 } else if (scoreAssigned && !recording) {
                     instructionsOverlay.text = STOP_RECORDING_TEXT;
                     Recording.startRecording();
-                    onAirOverlay.url = RECORDING_ON_ICON_URL;
+                    onAirOverlay.visible = true;
                     print("************ start recording");
                     recording = true;
                 } else if (scoreAssigned && recording) {
                     Recording.stopRecording();
                     Recording.saveRecordingToAsset(saveDataIntoDB);
-                    onAirOverlay.url = RECORDING_OFF_ICON_URL;
+                    onAirOverlay.visible = false;
                     recording = false;
                     workDone = true;
                     _this.cleanUI();
@@ -448,21 +445,21 @@
             });
             
             onAirOverlay = new Image3DOverlay({
-                    url: RECORDING_OFF_ICON_URL,
+                    url: RECORDING_ON_ICON_URL,
                     dimensions: {
-                        x: 0.1,
-                        y: 0.1
+                        x: 0.2,
+                        y: 0.2
                     },
                     isFacingAvatar: false,
                     alpha: 0.8,
-                    ignoreRayIntersection: false,
+                    ignoreRayIntersection: true,
                     offsetPosition: {
-                        x: -0.1,
-                        y: 0.65,
+                        x: 0,
+                        y: 0.7,
                         z: 0
                     },
                     emissive: true,
-                    visible: true,
+                    visible: false,
                 });
             print("OnAir added");
             cameraPanel.addChild(onAirOverlay);

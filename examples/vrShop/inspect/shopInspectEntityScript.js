@@ -29,6 +29,7 @@
     var THREE_STAR_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/3Star.png";
     
     var POINTER_ICON_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/Pointer.png";
+    var TRY_ON_ICON = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/TryOn.png"
     
     var MIN_DIMENSION_THRESHOLD = null;
     var IN_HAND_STATUS = "inHand";
@@ -746,26 +747,22 @@
                 
                 
                 if (wearable) {
-                    tryOnAvatarButton = new Text3DOverlay({
-                        text: "Try On Avatar\n     (beta)",
+                    
+                    tryOnAvatarButton = new Image3DOverlay({
+                        url: TRY_ON_ICON,
+                        dimensions: {
+                            x: 0.2,
+                            y: 0.2
+                        },
                         isFacingAvatar: false,
-                        alpha: 1.0,
+                        alpha: 1,
                         ignoreRayIntersection: false,
                         offsetPosition: {
                             x: 0.35,
                             y: -0.22,
                             z: 0
                         },
-                        dimensions: { x: 0.2, y: 0.09 },
-                        backgroundColor: { red: 0, green: 0, blue: 0 },
-                        color: { red: 255, green: 255, blue: 255 },
-                        topMargin: 0.00625,
-                        leftMargin: 0.00625,
-                        bottomMargin: 0.1,
-                        rightMargin: 0.00625,
-                        lineHeight: 0.03,
-                        alpha: 1,
-                        backgroundAlpha: 0.3
+                        emissive: true,
                     });
                     
                     mainPanel.addChild(tryOnAvatarButton);
