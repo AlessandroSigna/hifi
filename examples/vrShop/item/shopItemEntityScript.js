@@ -13,15 +13,12 @@
 
 (function() {
     var utilitiesScript = Script.resolvePath("../../libraries/utils.js");
-    //var overlayManagerScript = Script.resolvePath("../../libraries/overlayManager.js");
+    var overlayManagerScript = Script.resolvePath("../../libraries/overlayManager.js");
     var inspectEntityScript = Script.resolvePath("../inspect/shopInspectEntityScript.js");
     
     Script.include(utilitiesScript);
-    //Script.include(overlayManagerScript);
-    
-    print("aaa - item");
-    
-    
+    Script.include(overlayManagerScript);
+
     
     var RED_IMAGE_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/inspRED.png";
     var GREEN_IMAGE_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/inspGREEN.png";
