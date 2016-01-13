@@ -1,4 +1,13 @@
-//cashRegister
+// shopCashRegisterEntityScript.js
+//
+//  The register manages the total price overlay and the payment through collision with credit card
+
+//  Created by Alessandro Signa and Edgar Pironti on 01/13/2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 (function () {
     var overlayManagerScript = Script.resolvePath("../../libraries/overlayManager.js");
@@ -21,12 +30,10 @@
     };
     
     function receivingMessage(channel, message, senderID) {
-        print(" *** Avatar in cashRegister.js received a message");
         if (senderID === MyAvatar.sessionUUID && channel == CART_REGISTER_CHANNEL) {
             var messageObj = JSON.parse(message);
             if (messageObj.senderEntity != _this.entityID) {
-                print("-------------- cashRegister received a message");
-                //create or update the Overlay
+                //This message means that the cart sent the total price: create or update the Overlay on the register
                 var price = messageObj.totalPrice.toFixed(2);
                 _this.cashRegisterOverlayOn("" + price + " $");
                 totalPrice = messageObj.totalPrice;
@@ -62,7 +69,7 @@
                 payingAvatarID = MyAvatar.sessionUUID;
                 Messages.sendMessage(CART_REGISTER_CHANNEL, JSON.stringify({senderEntity: _this.entityID}));    //with this message the cart know that it has to compute and send back the total price of the items
                 Entities.callEntityMethod(cartID, 'singlePriceOn', null);
-                //sometimes the cart is unable to receive the message. It's a message mixer problem I think
+                //sometimes the cart is unable to receive the message. I think it's a message mixer problem
             } else {
                 payingAvatarID = null;
                 // Show anyway the overlay with the price 0$
@@ -87,7 +94,6 @@
                 
                 registerPanel = new OverlayPanel({
                     anchorPositionBinding: { entity: _this.entityID },
-                    //anchorRotationBinding: { entity: _this.entityID },
                     offsetPosition: { x: 0, y: 0.21, z: -0.14 },
                     isFacingAvatar: false,
                     
@@ -127,6 +133,7 @@
             }
         },
         
+        //Manage the collision with credit card
         collisionWithEntity: function (myID, otherID, collisionInfo) {
             var entityName = Entities.getEntityProperties(otherID).name;
             var entityOwnerID = getEntityCustomData('ownerKey', otherID, null).ownerID;

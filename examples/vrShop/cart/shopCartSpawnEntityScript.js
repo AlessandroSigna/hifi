@@ -1,18 +1,15 @@
-//cartzone
-
+// shopCartSpawnEntityScript.js
 //
-//  recordingEntityScript.js
-//  examples/entityScripts
-//
-//  Created by Alessandro Signa on 11/12/15.
-//  Copyright 2015 High Fidelity, Inc.
-//
+//  If an avatar doesn't own a cart and enters the zone, a cart is added.
+//  Otherwise if it already has a cart, this will be destroyed
 
-//  All the avatars in the area when the master presses the button will start/stop recording.
-//  
-
+//  Created by Alessandro Signa and Edgar Pironti on 01/13/2016
+//  Copyright 2016 High Fidelity, Inc.
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 
 (function () {
     var CART_MASTER_NAME = "ShopCartZero";
@@ -35,6 +32,7 @@
 
         preload: function (entityID) {
             this.entityID = entityID;
+            // Look for the ShopCartZero. Every cart created by this script is a copy of it
             var ids = Entities.findEntities(Entities.getEntityProperties(this.entityID).position, 50);
             ids.forEach(function(id) {
                 var properties = Entities.getEntityProperties(id);

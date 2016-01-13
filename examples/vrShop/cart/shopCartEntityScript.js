@@ -1,8 +1,16 @@
-//cart 
+// shopCartEntityScript.js
+//
+//  This script makes the cart follow the avatar who picks it and manage interations with items (store and delete them) and with cash register (send the item prices)
+
+//  Created by Alessandro Signa and Edgar Pironti on 01/13/2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 
 (function() {
-    //we're at hifi\examples\vrShop\cart\
-    
     var utilitiesScript = Script.resolvePath("../../libraries/utils.js");
     var overlayManagerScript = Script.resolvePath("../../libraries/overlayManager.js");
     Script.include(utilitiesScript);
@@ -10,17 +18,17 @@
     
     var COMFORT_ARM_LENGTH = 0.5;
     var CART_REGISTER_CHANNEL = "Hifi-vrShop-Register";
+    var PENETRATION_THRESHOLD = 0.2;
+    
     var _this;
     var cartIsMine = false;
     var originalY = 0;
     var itemsID = [];
-    var scaleFactor = 0.7; //The scale factor will dipend on the number of items in the cart. We would resize even the items already present.                
+    var scaleFactor = 0.7; //TODO: The scale factor will dipend on the number of items in the cart. We would resize even the items already present.
     var cartTargetPosition;
     var singlePrices = [];
     var singlePriceTagsAreShowing = false;
-    
     var collidedItemID = null;
-    var PENETRATION_THRESHOLD = 0.2;
 
     // this is the "constructor" for the entity as a JS object we don't do much here, but we do want to remember
     // our this object, so we can access it in cases where we're called without a this (like in the case of various global signals)
@@ -38,13 +46,12 @@
         }
     };
     
-    function receivingMessage(channel, message, senderID) {     //The senderID is the ID of the Avatar who runs the interface, not the ID on the entity which calls sendMessage()
-        print(" *** Avatar in cart.js received a message");
+    function receivingMessage(channel, message, senderID) {
         if (senderID === MyAvatar.sessionUUID && channel == CART_REGISTER_CHANNEL) {
             var messageObj = JSON.parse(message);
             if (messageObj.senderEntity != _this.entityID) {
                 print("--------------- cart received message");
-                //This means that the register wants the total price
+                //Receiving this message means that the register wants the total price
                 _this.computeAndSendTotalPrice();
             }
         }
@@ -60,7 +67,7 @@
         preload: function(entityID) {
             this.entityID = entityID;
             //get the owner ID from user data and compare to the mine
-            //the update will be connected just for the owner
+            //so the update will be connected just for the owner
             var ownerObj = getEntityCustomData('ownerKey', this.entityID, null);
             if (ownerObj.ownerID === MyAvatar.sessionUUID) {
                 cartIsMine = true;
@@ -68,13 +75,12 @@
                 Script.update.connect(update);
                 Messages.subscribe(CART_REGISTER_CHANNEL);
                 Messages.messageReceived.connect(receivingMessage);
-                print("PRELOAD CART USER DATA: " + Entities.getEntityProperties(_this.entityID).userData);
             }
         },
         
+        //update cart's target position. It will be at the right of the avatar as long as he moves
         followAvatar: function() {
             if (Vec3.length(MyAvatar.getVelocity()) > 0.1) {
-                //update cart target position and orientation
                 var radius = (Entities.getEntityProperties(_this.entityID).dimensions.x) / 2 + COMFORT_ARM_LENGTH;
                 var properY = MyAvatar.position.y + ((MyAvatar.getHeadPosition().y - MyAvatar.position.y) / 2);
                 var targetPositionPrecomputing = {x: MyAvatar.position.x, y: properY, z: MyAvatar.position.z};
@@ -105,22 +111,20 @@
 
         },
         
+        // delete all items stored into the cart
         resetCart: function () {
             
-            print("RESET CART - USER DATA: " + Entities.getEntityProperties(_this.entityID).userData);
-            
+            //print("RESET CART - USER DATA: " + Entities.getEntityProperties(_this.entityID).userData);
             if (itemsID.length != 0) {
                 if (singlePriceTagsAreShowing) {
                     _this.singlePriceOff();
                 }
-                // Delete all the items (entities)
                 for (var i=0; i < itemsID.length; i++) {
                     Entities.deleteEntity(itemsID[i]);
                 }
                 
-                // Delete the userData fields for the items
-                // set userData in a destructive way
-                Entities.editEntity(this.entityID, { userData: ""}); // in which format do we write the owner of the cart at the beginning?
+                // Clear the userData field for the cart
+                Entities.editEntity(this.entityID, { userData: ""});
                 
                 setEntityCustomData('ownerKey', this.entityID, {
                     ownerID: MyAvatar.sessionUUID
@@ -134,16 +138,13 @@
             }
         },
         
-        //delete the item pointed by dataArray (data.id) from the cart
+        //delete the item pointed by dataArray (data.id) from the cart because it's been grabbed from there
         refreshCartContent: function (entityID, dataArray) {
             var data = JSON.parse(dataArray[0]);
-            
-            print("item ID: " + data.id);
             
             for (var i=0; i < itemsID.length; i++) {
                 if(itemsID[i] == data.id) {
                     itemsID.splice(i, 1);
-                    //relativeItemsPosition.splice(i,1);
                     //if the price tags are showing we have to remove also the proper tag
                     if (singlePriceTagsAreShowing) {
                         singlePrices[i].destroy();
@@ -152,18 +153,16 @@
                 }
             }
             
-            itemsID.forEach( function(p) { print(p) });
-            
             _this.computeAndSendTotalPrice();
         },
         
+        //show the prices on each item into the cart
         singlePriceOn: function () {
             //create an array of text3D which follows the structure of the itemsID array. Each text3D is like the 'Store the item!' one
             var i = 0;
             itemsID.forEach( function(itemID) {
                 singlePrices[i] = new OverlayPanel({
                     anchorPositionBinding: { entity: itemID },
-                    //anchorRotationBinding: { entity: entityBindID },
                     offsetPosition: { x: 0, y: 0.15, z: 0 },
                     isFacingAvatar: true,
                     
@@ -217,26 +216,23 @@
             Messages.sendMessage(CART_REGISTER_CHANNEL, JSON.stringify(messageObj));
         },
         
+        //dataArray stores the ID of the item which has to be stored into the cart
+        //this entity method is invoked by shopItemEntityScript.js
         doSomething: function (entityID, dataArray) {
             collidedItemID = null;
             var data = JSON.parse(dataArray[0]);
             var itemOwnerObj = getEntityCustomData('ownerKey', data.id, null);
-            print("------- The owner of the item is: " + ((itemOwnerObj == null) ? itemOwnerObj : itemOwnerObj.ownerID));
-            print("item ID: " + data.id);
             
             var cartOwnerObj = getEntityCustomData('ownerKey', this.entityID, null);
-            print("------- The owner of the cart is: " + ((cartOwnerObj == null) ? cartOwnerObj : cartOwnerObj.ownerID));
-            print("cart ID: " + this.entityID);
             
             if (cartOwnerObj == null) {
-                print("The cart doesn't have a owner.");
+                //print("The cart doesn't have a owner.");
                 Entities.deleteEntity(data.id);
             }
             
             if (itemOwnerObj.ownerID === cartOwnerObj.ownerID) {
-                // if itemsQuantity == fullCart resize all the items present in the cart and change the scaleFactor for this and next insert
+                // TODO if itemsQuantity == fullCart resize all the items present in the cart and change the scaleFactor for this and next insert
 
-            
                 print("Going to put item in the cart!");
                 var itemsQuantity = itemsID.length;
                 
@@ -260,7 +256,6 @@
                 if (singlePriceTagsAreShowing) {
                     singlePrices[itemsQuantity-1] = new OverlayPanel({
                         anchorPositionBinding: { entity: data.id },
-                        //anchorRotationBinding: { entity: entityBindID },
                         offsetPosition: { x: 0, y: 0.15, z: 0 },
                         isFacingAvatar: true,
                     
@@ -292,8 +287,7 @@
             }
         },
         
-        
-        
+        //detect when the item enters or leave the cart while it's grabbed
         collisionWithEntity: function(myID, otherID, collisionInfo) {
             var penetrationValue = Vec3.length(collisionInfo.penetration);
             

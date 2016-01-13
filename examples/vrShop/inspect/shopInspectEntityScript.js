@@ -1,15 +1,18 @@
+// shopInspectEntityScript.js
 //
-//  detectGrabExample.js
-//  examples/entityScripts
-//
-//  Created by Brad Hefta-Gaub on 9/3/15.
-//  Copyright 2015 High Fidelity, Inc.
-//
-//  This is an example of an entity script which when assigned to an entity, will detect when the entity is being grabbed by the hydraGrab script
+//  The inspection entity which runs this entity script will be in fron of the avatar while he's grabbing an item.
+//  This script gives some information to the avatar using interactive 3DOverlays:
+//  - Drive the customer to put he item in the correct zone to inspect it
+//  - Create the UI while inspecting with text and buttons and manages the clicks on them modifying the item and communicating with agents
+//  And also it creates the MyController which are in charge to render the rays from the hands during inspecting and analysing their intersection with other overlays
+
+//  Created by Alessandro Signa and Edgar Pironti on 01/13/2016
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 
 (function() {
     
@@ -55,7 +58,7 @@
     var inspectedEntityID = null;
     var isUIWorking = false;
     var wantToStopTrying = false;
-    var rightController = null;     //rightController and leftController are two objects
+    var rightController = null;
     var leftController = null;
     var workingHand = null;
     var collidedItemID = null;
@@ -143,8 +146,8 @@
                origin: this.getHandPosition(),
                direction: Quat.getUp(this.getHandRotation())
             };
-            //update the ray overlay and the pointer
             
+            //update the ray overlay and the pointer
             var rayPickResult = OverlayManager.findRayIntersection(this.pickRay);
             if (rayPickResult.intersects) {
                 var normal = Vec3.multiply(Quat.getFront(Camera.getOrientation()), -1);
@@ -175,7 +178,7 @@
             
             //manage event on UI
             if (bumperPressed && !this.waitingForBumpReleased) {
-                this.waitingForBumpReleased = true;
+                this.waitingForBumpReleased = true;     //to avoid looping on the button while keep pressing the bumper
                 var triggeredButton = OverlayManager.findOnRay(this.pickRay);
                 if (triggeredButton != null) {
                     //search the index of the UI element triggered
@@ -186,10 +189,10 @@
                         }
                     }
                     
+                    //the nextButton moves to the next customer review, changing the agent accordingly
                     if (nextButton == triggeredButton) {
                         
                         reviewIndex ++;
-                        
                         if (reviewIndex == reviewsNumber) {
                             reviewIndex = 0;
                         }
@@ -208,6 +211,7 @@
                         print("UI updated");
                     }
                     
+                    //the playButton sends the play command to the agent
                     if (playButton == triggeredButton) {
                          var message = {
                             command: "Play",
@@ -219,10 +223,12 @@
                         
                     }
                     
+                    //the tryOnAvatarButton change the camera mode and puts t a copy of the inspected item in a proper position on the the avatar
                     if (tryOnAvatarButton == triggeredButton) {
                         print("tryOnAvatar pressed!");
                         
                         var itemPositionWhileTrying = null;
+                        //All the offset here are good just for Will avatar increasing its size by one
                         switch (Entities.getEntityProperties(inspectedEntityID).name) {
                             case "Item_Sunglasses":
                                 itemPositionWhileTrying = {x: 0, y: 0.04, z: 0.05};
@@ -287,7 +293,6 @@
                             name: entityProperties.name,
                             localPosition: itemPositionWhileTrying,
                             dimensions: itemOriginalDimensions,
-                            //rotation: entityProperties.rotation,
                             collisionsWillMove: false,
                             ignoreForCollisions: true,
                             modelURL: entityProperties.modelURL,
@@ -400,11 +405,11 @@
         return starURL;
     };
     
+    
+    // look for the database entity relative to the inspected item
     function findItemDataBase(entityID, item) {
         var dataBaseID = null;
-        // find the database entity
         var databaseEntityName = item + "DB";
-        print("Database relative to the item: " + databaseEntityName);
         var entitiesInZone = Entities.findEntities(Entities.getEntityProperties(entityID).position, (Entities.getEntityProperties(entityID).dimensions.x)*100); 
         
         for (var i = 0; i < entitiesInZone.length && dataBaseID == null; i++) {
@@ -412,16 +417,10 @@
                 dataBaseID = entitiesInZone[i];
                 print("Database found! " + entitiesInZone[i]);
                 return dataBaseID;
-            } else {
-                print("No database for this item.");
             }
         }
-        
+        print("No database for this item.");
         return null;
-        
-        // Or get the database entity ID if we manage to store it in the userData of the item.
-        // var DBObj = getEntityCustomData('DBKey', Entities.getEntityProperties(e).id, null);
-        // if (DBObj != null) { dataBaseID = DBObj.DBID }
     };
     
     function findItemByName(searchingPointEntityID, itemName) {
@@ -456,6 +455,7 @@
             }
         },
         
+        //Put the item which calls this method in inspect mode if it belongs to the owner of the inspect zone
         doSomething: function (entityID, dataArray) {
             var data = JSON.parse(dataArray[0]);
             var itemOwnerObj = getEntityCustomData('ownerKey', data.id, null);
@@ -490,23 +490,17 @@
             }
         },
         
+        //make the inspection entity stay at the proper position with respect to the avatar and camera positions
         positionRotationUpdate: function() {
             var newRotation;
             if (tryingOnAvatar) {
                 newRotation = Vec3.sum(Quat.safeEulerAngles(MyAvatar.orientation), {x:0, y: 180, z: 0});        //neccessary to set properly the camera in entity mode when trying on avatar
-                //Entities.editEntity(_this.entityID, { rotation: newRotation });
                 Entities.editEntity(_this.entityID, { rotation: Quat.fromVec3Degrees(newRotation) });
             } else {
-                
                 var newPosition = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), inspectRadius)); 
                 Entities.editEntity(_this.entityID, { position: newPosition });
                 newRotation = MyAvatar.orientation;
                 Entities.editEntity(_this.entityID, { rotation: newRotation });
-                // if (mainPanel != null) {
-                    // //update the position of the inspecting UI
-                    // mainPanel.anchorPosition = Entities.getEntityProperties(_this.entityID).position;
-                // }
-                
             }
 
             newPosition = Vec3.sum(newPosition, Vec3.multiply(Quat.getRight(newRotation), 0.34));
@@ -515,32 +509,7 @@
         
         createInspectUI : function() {
             
-            // We want to create a UI with the information coming from the userData, provided by the vendor
-            // UserData structure:
-            // infoKey: {
-                // rootURL: "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/",
-                // modelURLs: [
-                   // "sportShoe1model.fbx",
-                   // "sportShoe2model.fbx",
-                   // "sportShoe3model.fbx"
-                // ],
-                // previewURLs: [
-                    // "sportShoe1preview.png",
-                    // "sportShoe2preview.png",
-                    // "sportShoe3preview.png"
-                // ],
-                // description: descriptionValue,
-                // price: priceValue,
-                // availability: availabilityValue,
-                // wearable: wearable
-            // }
-            
-            print("Got here! Before Info");
-            
             var infoObj = getEntityCustomData('infoKey', inspectedEntityID, null);
-            
-            //print("Info Obj is: " + infoObj);
-            
             var itemDescriptionString = null;
             var priceNumber = -1;
             var availabilityNumber = -1;
@@ -561,21 +530,18 @@
                 infoObj = null;
             }
             
-            // Retreiving info from the item DB
-            print("Got here! Before DB - " + Entities.getEntityProperties(inspectedEntityID).name);
+            //Looking for the item DB, this entity has in its userData the info of the customer reviews for the item
             var DBID = findItemDataBase(_this.entityID, Entities.getEntityProperties(inspectedEntityID).name);
             
             if (DBID != null) {
-                print("The Id of the DB is: " + DBID);
                 infoObj = getEntityCustomData('infoKey', DBID, null);
                 var scoreAverage = null;
                 var reviewerName = null;
-                print("Info Obj is: " + infoObj);
                 
                 if(infoObj != null) {
                     dbMatrix = infoObj.dbKey;
                     reviewsNumber = infoObj.dbKey.length;
-                    print("DB matrix is " + dbMatrix + " with element number: " + reviewsNumber);
+                    //print("DB matrix is " + dbMatrix + " with element number: " + reviewsNumber);
                     var scoreSum = null;
                     
                     for (var i = 0; i < dbMatrix.length; i++) {
@@ -594,30 +560,25 @@
                         Messages.sendMessage(AGENT_REVIEW_CHANNEL, JSON.stringify(message));
                         print("Show sent to agent");
                     } else {
-                        //some default value if the DB is empty?
+                        //some default value if the DB is empty
                         scoreAverage = 0;
                         reviewerName = NO_REVIEWS_AVAILABLE;
                     }
                     
                 }
                 
-                print ("Creating UI");
+                print ("Creating inspect UI");
                 //set the main panel to follow the inspect entity
                 mainPanel = new OverlayPanel({
                     anchorPositionBinding: { entity: _this.entityID },
                     anchorRotationBinding: { entity: _this.entityID },
-                    //anchorPositionBinding: { avatar: "MyAvatar"},
-                    //anchorRotationBinding: { avatar: "MyAvatar" },
-                    
-                    //anchorPosition: Entities.getEntityProperties(_this.entityID).position,
-                    //offsetPosition: Vec3.subtract(Entities.getEntityProperties(_this.entityID).position, MyAvatar.position),
-                    
                     isFacingAvatar: false
                 });
                 
                 var offsetPositionY = 0.2;
                 var offsetPositionX = -0.4;
                 
+                //these buttons are the 3 previews of the item
                 for (var i = 0; i < previewURLsArray.length; i++) {
                     buttons[i] = new Image3DOverlay({
                         url: previewURLsArray[i],
@@ -639,6 +600,7 @@
                     mainPanel.addChild(buttons[i]);
                 }
                 
+                //aggregateScore is the average between those given by the reviewers
                 var aggregateScore = new Image3DOverlay({
                     url: starConverter(scoreAverage),
                     dimensions: {
@@ -658,6 +620,7 @@
                 
                 mainPanel.addChild(aggregateScore);
                 
+                //if any review is available create buttons to manage them
                 if (dbMatrix.length) {
                     
                     playButton = new Image3DOverlay({
@@ -745,9 +708,8 @@
                     
                 mainPanel.addChild(textReviewerName);
                 
-                
+                //if the item is wearable create a tryOnAvatarButton
                 if (wearable) {
-                    
                     tryOnAvatarButton = new Image3DOverlay({
                         url: TRY_ON_ICON,
                         dimensions: {
@@ -851,7 +813,7 @@
             }
         },
 
-        
+        //Manage the collisions and tell to the item if it is into the this inspection area
         collisionWithEntity: function(myID, otherID, collisionInfo) {
             
             var itemObj = getEntityCustomData('itemKey', _this.entityID, null);
@@ -859,7 +821,6 @@
                 if (itemObj.itemID == otherID) {        //verify that the inspect area is colliding with the actual item which created it
                     
                     var penetrationValue = Vec3.length(collisionInfo.penetration);
-                    //print("Value: " +  penetrationValue);
                     if (penetrationValue > PENETRATION_THRESHOLD && collidedItemID === null) {
                         collidedItemID = otherID;
                         print("Start collision with: " + Entities.getEntityProperties(collidedItemID).name);
@@ -869,37 +830,10 @@
                         
                         print("End collision with: " + Entities.getEntityProperties(collidedItemID).name);
                         collidedItemID = null;
-                        //print("Zone: " + collidedItemID);
-                        //print("Going to call the change color to green");
                         Entities.callEntityMethod(otherID, 'changeOverlayColor', null);
                     }
                 }
             }
-            
-            /*
-            var penetrationValue = Vec3.length(collisionInfo.penetration);
-            //print("Value: " +  penetrationValue);
-            if (penetrationValue > PENETRATION_THRESHOLD && collidedItemID === null) {
-                collidedItemID = otherID;
-                print("Zone: " + collidedItemID);
-                
-                var itemObj = getEntityCustomData('itemKey', _this.entityID, null);
-                //print("------- The entity in the inspect zone is: " + ((itemObj == null) ? itemObj : itemObj.itemID));
-                
-                if (itemObj != null) {
-                    if (itemObj.itemID == otherID) {        //verify that the inspect area is colliding with the actual item which created it
-                        // change overlay color
-                        //print("Going to call the change color to red");
-                        Entities.callEntityMethod(otherID, 'changeOverlayColor', null);
-                    }
-                }
-            } else if (penetrationValue < PENETRATION_THRESHOLD && collidedItemID !== null) {
-                collidedItemID = null;
-                //print("Zone: " + collidedItemID);
-                //print("Going to call the change color to green");
-                Entities.callEntityMethod(otherID, 'changeOverlayColor', null);
-            }
-            */
         },
         
         changeModel: function(index) {

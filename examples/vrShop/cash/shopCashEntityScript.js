@@ -1,8 +1,17 @@
-//cashzone
+// shopCashEntityScript.js
+//
+//  When an avatar enters the zone the cashier bot (agent) is activated and the cash register as well.
+//  A credit card model will be added to the scene for make the payment
+
+//  Created by Alessandro Signa and Edgar Pironti on 01/13/2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 
 (function () {
-    var _this;
-    
     var AGENT_PLAYBACK_CHANNEL = "playbackChannel";
     var PLAY_MESSAGE = "Play";
     var REGISTER_NAME = "CashRegister";
@@ -12,6 +21,7 @@
     var CARD_DIMENSIONS = {x: 0.02, y: 0.09, z: 0.15};
     var SCRIPT_URL = Script.resolvePath("shopCreditCardEntityScript.js");
     
+    var _this;
     var cashRegisterID = null;
     var cardID = null;
     
@@ -31,7 +41,7 @@
             Messages.sendMessage(AGENT_PLAYBACK_CHANNEL, PLAY_MESSAGE);
             print("Play sent.");
             
-            // find register
+            // Look for the register
             var entitiesInZone = Entities.findEntities(Entities.getEntityProperties(entityID).position, (Entities.getEntityProperties(entityID).dimensions.x)/2); 
             entitiesInZone.forEach( function(e) {
                 if (Entities.getEntityProperties(e).name == REGISTER_NAME) {
@@ -40,8 +50,7 @@
                 }
             });
              
-            // create card above register position
-            
+            // create a credit card above register position
             var cardPosition = Vec3.sum(Entities.getEntityProperties(cashRegisterID).position, CARD_POSITION_OFFSET);
             var cardOrientationQuat = Quat.fromVec3Degrees(CARD_INITIAL_ORIENTATION);
             
@@ -56,7 +65,7 @@
                 angularVelocity: CARD_ANGULAR_VELOCITY,
                 angularDamping: 0,
                 script: Script.resolvePath(SCRIPT_URL),
-                // We have to put the ownerID in the card, and check that when grabbing the card. Otherwise it cannot be grabbed
+                // We have to put the ownerID in the card, and check this property when grabbing the card. Otherwise it cannot be grabbed - I can only grab my card
                 userData: JSON.stringify({
                     ownerKey: {
                         ownerID: MyAvatar.sessionUUID

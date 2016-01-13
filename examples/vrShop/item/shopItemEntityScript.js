@@ -13,11 +13,15 @@
 
 (function() {
     var utilitiesScript = Script.resolvePath("../../libraries/utils.js");
-    var overlayManagerScript = Script.resolvePath("../../libraries/overlayManager.js");
+    //var overlayManagerScript = Script.resolvePath("../../libraries/overlayManager.js");
     var inspectEntityScript = Script.resolvePath("../inspect/shopInspectEntityScript.js");
     
     Script.include(utilitiesScript);
-    Script.include(overlayManagerScript);
+    //Script.include(overlayManagerScript);
+    
+    print("aaa - item");
+    
+    
     
     var RED_IMAGE_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/inspRED.png";
     var GREEN_IMAGE_URL = "https://dl.dropboxusercontent.com/u/14127429/FBX/VRshop/inspGREEN.png";
@@ -68,7 +72,8 @@
         //   * connecting to the update signal so we can check our grabbed state
         preload: function(entityID) {
             this.entityID = entityID;
-            print("PRELOAD: " + Entities.getEntityProperties(this.entityID).name + " " + entityID);
+            print("PRELOAD: " + Entities.getEntityProperties(this.entityID).name + " " + entityID + " at:");
+            Vec3.print(Entities.getEntityProperties(this.entityID).name, Entities.getEntityProperties(this.entityID).position);
             
             Script.update.connect(update);
     
