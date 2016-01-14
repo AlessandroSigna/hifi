@@ -1,11 +1,12 @@
+// shopItemEntityScript.js
 //
-//  detectGrabExample.js
-//  examples/entityScripts
-//
-//  Created by Brad Hefta-Gaub on 9/3/15.
-//  Copyright 2015 High Fidelity, Inc.
-//
-//  This is an example of an entity script which when assigned to an entity, will detect when the entity is being grabbed by the hydraGrab script
+//  This script makes the shop items react properly to the grab (see shopItemGrab.js) and gives it the capability to interact with the shop environment (inspection entity and cart)
+//  The first time the item is grabbed a copy of itself is created on the shelf.
+//  If the item isn't held by the user it can be inInspect or inCart, otherwise it's destroyed
+//  The start and release grab methods handle the creation of the item copy, UI, inspection entity
+
+//  Created by Alessandro Signa and Edgar Pironti on 01/13/2016
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -29,7 +30,6 @@
     var SHOPPING_CART_NAME = "Shopping cart";
 
     var _this;
-    var hand;
     var onShelf = true;
     var inspecting = false;
     var inCart = false;
@@ -41,7 +41,6 @@
     var deltaLY = 0;
     var deltaRX = 0;
     var deltaRY = 0;
-    var radius;
     var inspectingEntity = null;
     var inspectPanel = null;
     var background = null;
@@ -76,24 +75,14 @@
     
             MIN_DIMENSION_THRESHOLD = Vec3.length(Entities.getEntityProperties(this.entityID).dimensions)/2;
             MAX_DIMENSION_THRESHOLD = Vec3.length(Entities.getEntityProperties(this.entityID).dimensions)*2;
-            radius = Vec3.length(Entities.getEntityProperties(this.entityID).dimensions) / 2.0;
             
         },
         
-        setRightHand: function () {
-            hand = MyAvatar.rightHandPose;
-        },
-        
-        setLeftHand: function () {
-            hand = MyAvatar.leftHandPose;
-        },
-        
+        //create a rectangle red or green do guide the user in putting the item in the inspection area
         createInspectOverlay: function (entityBindID) {
-            //print ("Creating overlay");
             inspectPanel = new OverlayPanel({
                 anchorPositionBinding: { entity: entityBindID },
                 anchorRotationBinding: { entity: entityBindID },
-                //offsetPosition: { x: 0, y: 0, z: 0 },
                 isFacingAvatar: false
             });
             
@@ -117,10 +106,10 @@
             inspectPanel.addChild(background);
         },
         
+        //add an overlay on the item grabbed by the customer to give him the feedback if the item is inside the bounding box of the cart
         createCartOverlay: function (entityBindID) {
             cartPanel = new OverlayPanel({
                 anchorPositionBinding: { entity: entityBindID },
-                //anchorRotationBinding: { entity: entityBindID },
                 offsetPosition: { x: 0, y: 0.2, z: 0.1 },
                 isFacingAvatar: true,
                 
@@ -173,14 +162,14 @@
             }
         },
         
+        //What is done by this methos changes acoordingly to the previous state of the item - onShelf , inCart, inInspect
         startNearGrab: function () {
             
-            print("I was just grabbed... entity:" + _this.entityID);
             //we have to distinguish if the user who is grabbing has a cart or not
             //if he does it is a buyer, otherwise he probably want to do a review
-            
             var thisItemPosition = Entities.getEntityProperties(_this.entityID).position;
             
+            // if onShelf is true, this is the first grab
             if (onShelf === true) {
                 
                 var foundEntities = Entities.findEntities(thisItemPosition, 5);
@@ -194,7 +183,7 @@
                     }
                 });
                 
-                // --- Create a copy of this entity if it is the first grab ---
+                // Create a copy of this entity if it is the first grab
                 print("creating a copy of the grabbed dentity");
                 var entityProperties = Entities.getEntityProperties(_this.entityID);
                 
@@ -232,8 +221,9 @@
                 originalDimensions = entityProperties.dimensions;
 
             }
+            
+            //if cartID is defined the user is a buyer
             if (cartID) {
-                //the user is a buyer
                 // Everytime we grab, we create the inspectEntity and the inspectAreaOverlay in front of the avatar
                 if(!inspecting) {
                     inspectingEntity = Entities.addEntity({
@@ -261,19 +251,15 @@
                 Entities.editEntity(_this.entityID, { ignoreForCollisions: false });
                 _this.createInspectOverlay(inspectingEntity);
                 _this.createCartOverlay(_this.entityID);
-                print("Got after the creation!");
                 
                 if (inspecting === true) {
                     inspecting = false;
-                    
                     Entities.editEntity(_this.entityID, { dimensions: originalDimensions });
-                    //deletentityforinspecting
                     Controller.disableMapping(MAPPING_NAME);
                     setEntityCustomData('statusKey', _this.entityID, {
                         status: "inHand"
                     });
                 } else if (inCart === true) {
-                    print("GOT IN inCart BRANCH");
                     inCart = false;
                     Entities.editEntity(_this.entityID, { dimensions: originalDimensions });
                     setEntityCustomData('statusKey', _this.entityID, {
@@ -291,11 +277,11 @@
         continueNearGrab: function () {
         },
 
+        //Every time the item is released I have to check what's the role of the user and where the release happens
         releaseGrab: function () {
             
-            print("I was released... entity:" + _this.entityID);
-            
-            if (cartID == null) {
+            //if cart ID is not defined destroy the item whatever the zone is because the user is a reviewer
+            if (!cartID) {
                 Entities.deleteEntity(this.entityID);
                 return;
             }
@@ -307,8 +293,6 @@
             inspectPanel = cartPanel = null;
             
             if (zoneID !== null) {
-                
-                print("Got here. Entity ID is: " + _this.entityID);
                 var dataJSON = {
                     id: _this.entityID
                 };
@@ -317,9 +301,9 @@
                 
                 var statusObj = getEntityCustomData('statusKey', _this.entityID, null);
                 
-                if (statusObj.status == "inInspect") { // if I'm releasing in the inspectZone
+                //There are two known zones where the relase can happen: inspecting area and cart
+                if (statusObj.status == "inInspect") {
                     inspecting = true;
-                    print("released inside the inspection area");
                     
                     var mapping = Controller.newMapping(MAPPING_NAME);
                     mapping.from(Controller.Standard.LX).to(function (value) {
@@ -344,19 +328,18 @@
                     var availabilityNumber = userDataObj.infoKey.availability;
                     //if the item is no more available, destroy it
                     if (availabilityNumber == 0) {
-                        print("destroying the item");
                         Entities.deleteEntity(this.entityID);
                     }
                     print("inCart is TRUE");
                     inCart = true;
                 } else { // any other zone
-                    print("------------zoneID is something");
+                    //print("------------zoneID is something");
                     Entities.deleteEntity(inspectingEntity);
                     inspectingEntity = null;
                 }
                 
             } else { // ZoneID is null, released somewhere that is not a zone.
-            print("------------zoneID is null");
+            //print("------------zoneID is null");
                 Entities.deleteEntity(inspectingEntity);
                 inspectingEntity = null;
                 Entities.deleteEntity(this.entityID);
@@ -364,6 +347,7 @@
         
         },
 
+        //Analising the collisions we can define the value of zoneID
         collisionWithEntity: function(myID, otherID, collisionInfo) {
             var penetrationValue = Vec3.length(collisionInfo.penetration);
             if (penetrationValue > PENETRATION_THRESHOLD && zoneID === null) {
@@ -375,6 +359,7 @@
             }
         },
         
+        //this method handles the rotation and scale of the item while in inspect and also guarantees to keep the item in the proper position. It's done every update
         orientationPositionUpdate: function() {
             //position
             var inspectingEntityPosition = Entities.getEntityProperties(inspectingEntity).position;      //at this time inspectingEntity is a valid entity

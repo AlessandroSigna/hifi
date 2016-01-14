@@ -1,4 +1,13 @@
-//promptExample
+// shopVendorAddItem.js
+//
+//  This shows a propt to allow the user to create a custom shop item, it also creates a DB entity for that object
+
+//  Created by Alessandro Signa and Edgar Pironti on 01/13/2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 var TITLE = "Add Item Form";
 var DEFAULT_ITEM_NAME = "New Item";

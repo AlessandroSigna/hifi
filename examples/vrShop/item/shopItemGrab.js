@@ -1,16 +1,8 @@
-//  handControllerGrab.js
-//  examples
-//
-//  Created by Eric Levin on  9/2/15
-//  Additions by James B. Pollack @imgntn on 9/24/2015
-//  Additions By Seth Alves on 10/20/2015
-//  Copyright 2015 High Fidelity, Inc.
-//
-//  Grabs physically moveable entities with hydra-like controllers; it works for either near or far objects.
-//
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-/*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camefra, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
+//  shopItemGrab.js
+//  
+//  Semplified and coarse version of handControllerGrab.js with the addition of the ownerID concept.
+//  This grab is the only one which should run in the vrShop. It allows only near grab and add the feature of checking the ownerID. (See shopGrapSwapperEntityScript.js)
+//  
 
 Script.include("../../libraries/utils.js");
 
@@ -410,7 +402,7 @@ function MyController(hand) {
                     } else if (!intersection.properties.locked) {
                         var ownerObj = getEntityCustomData('ownerKey', intersection.entityID, null);
                         
-                        if (ownerObj == null || ownerObj.ownerID === MyAvatar.sessionUUID) {
+                        if (ownerObj == null || ownerObj.ownerID === MyAvatar.sessionUUID) {    //I can only grab new or already mine items
                             this.grabbedEntity = intersection.entityID;
                             if (this.state == STATE_SEARCHING) {
                                 this.setState(STATE_NEAR_GRABBING);

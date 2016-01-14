@@ -1,24 +1,21 @@
-//cartzone
-
+// shopGrapSwapperEntityScript.js
 //
-//  recordingEntityScript.js
-//  examples/entityScripts
-//
-//  Created by Alessandro Signa on 11/12/15.
-//  Copyright 2015 High Fidelity, Inc.
-//
+//  This script handle the transition from handControllerGrab to shopItemGrab
+//  When an avatar enters the zone a message is sent to the handControllerGrab script to disable itself and the shopItemGrab is loaded.
+//  When exit from the zone the handControllerGrab is re-enabled.
+//  This mechanism may not work well with the last changes to the animations in handControllerGrab, if it's the case please load this script manually and disable that one.
 
-//  All the avatars in the area when the master presses the button will start/stop recording.
-//  
-
+//  Created by Alessandro Signa and Edgar Pironti on 01/13/2016
+//  Copyright 2016 High Fidelity, Inc.
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 (function () {
     var SHOP_GRAB_SCRIPT_URL = Script.resolvePath("../item/shopItemGrab.js");
     var SHOP_GRAB_CHANNEL = "Hifi-vrShop-Grab";
     var _this;
-
 
     function SwapGrabZone() {
         _this = this;
@@ -35,12 +32,9 @@
         }
         return false;
     };
-
-
-
+    
     SwapGrabZone.prototype = {
-
-
+        
         enterEntity: function (entityID) {
             print("entering in the shop area");
             

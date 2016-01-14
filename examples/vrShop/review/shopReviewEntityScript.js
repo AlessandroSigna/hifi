@@ -1,4 +1,16 @@
-//reviewzone
+// shopReviewEntityScript.js
+//
+//  This script handles the review phase in the vrShop. It starts entering into the entity holding in hand the item to review.
+//  Then the user can rate the item and record a review for that item.
+//  Finally the recording is stored into the asset and a link to that file is stored into the DB entity of that item.
+//  During the whole reviewing experience an (interactive) UI drives the user.
+
+//  Created by Alessandro Signa and Edgar Pironti on 01/13/2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 (function () {
     var utilitiesScript = Script.resolvePath("../../libraries/utils.js");
@@ -43,7 +55,7 @@
 
     var isUIWorking = false;
     var wantToStopTrying = false;
-    var rightController = null;     //rightController and leftController are two objects
+    var rightController = null;
     var leftController = null;
     var workingHand = null;
     
@@ -54,7 +66,7 @@
     var instructionsOverlay = null;
     
     
-    var pointer = new Image3DOverlay({          //maybe we want to use one pointer for each hand ?
+    var pointer = new Image3DOverlay({
         url: POINTER_ICON_URL,
         dimensions: {
             x: 0.015,
@@ -174,13 +186,11 @@
                 
                 if (hoveredButton) {
                     scoreAssigned = hoveredButtonIndex + 1;
-                    print("********** scoreAssigned: " + scoreAssigned);
                     hoveredButton = null;
                 } else if (scoreAssigned && !recording) {
                     instructionsOverlay.text = STOP_RECORDING_TEXT;
                     Recording.startRecording();
                     onAirOverlay.visible = true;
-                    print("************ start recording");
                     recording = true;
                 } else if (scoreAssigned && recording) {
                     Recording.stopRecording();
@@ -189,7 +199,6 @@
                     recording = false;
                     workDone = true;
                     _this.cleanUI();
-                    print("********** stop recording");
                 }
             } else if (!bumperPressed && this.waitingForBumpReleased) {
                 this.waitingForBumpReleased = false;
@@ -197,7 +206,6 @@
         },
         
         this.clean = function() {
-            print("hand clean");
             this.pickRay = null;
             if (this.overlayLine) {
                 this.overlayLine.destroy();
@@ -214,7 +222,6 @@
             rightController.updateHand();
         } else {
             _this.cleanUI();
-            print("******** WORK DONE");
             Script.update.disconnect(update);
         }
         
@@ -226,23 +233,22 @@
         
     };
     
+    //This method is the callback called once the recording is loaded into the asset
     function saveDataIntoDB(url) {
-        print("feeding DB with: " + url);
         // Feed the database
-        
         var dbObj = getEntityCustomData('infoKey', dataBaseID, null);
         if(dbObj) {
             var myName = MyAvatar.displayName ? MyAvatar.displayName : "Anonymous";
             dbObj.dbKey[dbObj.dbKey.length] = {name: myName, score: scoreAssigned, clip_url: url};
             setEntityCustomData('infoKey', dataBaseID, dbObj);
-            print("feeded");
+            print("Feeded DB: " + url");
         }
     };
     
+    // Find items in the zone. It return a not null value if an item belonging to the user it's found AND if a cart belonging to him it's not found
     function findItemToReview(searchingPointEntityID) {
-        // Find items in the zone. It return a not null value if it's found an item belonging to the user AND if it's not found a cart belonging to him
         var foundItemToReviewID = null;
-        var entitiesInZone = Entities.findEntities(Entities.getEntityProperties(searchingPointEntityID).position, /*(Entities.getEntityProperties(searchingPointEntityID).dimensions.x)/2*/ 5); 
+        var entitiesInZone = Entities.findEntities(Entities.getEntityProperties(searchingPointEntityID).position, 5); 
         for (var i = 0; i < entitiesInZone.length; i++) {
             
             var ownerObj = getEntityCustomData('ownerKey', entitiesInZone[i], null);
@@ -271,9 +277,7 @@
     };
     
     function findAnchorEntityForUI(searchingPointEntityID) {
-        // Find items in the zone
         
-        print("Looking for anchor UI");
         var entitiesInZone = Entities.findEntities(Entities.getEntityProperties(searchingPointEntityID).position, 2); 
         for (var i = 0; i < entitiesInZone.length; i++) {
             
@@ -298,13 +302,9 @@
         }
         print("Item " + itemName + " not found");
         return null;
-        // Or get the database entity ID if we manage to store it in the userData of the item.
-        // var DBObj = getEntityCustomData('DBKey', Entities.getEntityProperties(e).id, null);
-        // if (DBObj != null) { dataBaseID = DBObj.DBID }
     };
     
     function adaptOverlayOnHover(hoveredButtonIndex) {
-        //print("Adapting overlay rendering: " + hoveredButtonIndex);
         for (var i = buttons.length - 1; i >= 0; i--) {
             if (i <= hoveredButtonIndex) {
                 buttons[i].url = STAR_ON_URL;
@@ -320,6 +320,7 @@
         preload: function (entityID) {
         },
         
+        //When the avatar comes into the review zone the script looks for the actual item to review, the proper DB for that item and the entity camera. If all goes well the UI is created
         enterEntity: function (entityID) {
             print("entering in the review area");
             insideZone = true;
@@ -356,7 +357,6 @@
                 cameraPanel = null;
             }
             workDone = false;
-            //itemToReview = null;
             cameraEntity = null;
             dataBaseID = null;
             scoreAssigned = null;
@@ -364,7 +364,6 @@
             hoveredButtonIndex = -1;
             insideZone = false;
             _this.cleanUI();
-            print("cleaning after leaving");
         },
         
         createReviewUI : function(anchorEntityID) {
@@ -374,16 +373,10 @@
             Entities.editEntity(anchorEntityID, { position: anchorEntityPosition });
             Entities.editEntity(anchorEntityID, { locked: true });
             
-            print ("Creating UI");
             //set the main panel to follow the inspect entity
             mainPanel = new OverlayPanel({
                 anchorPositionBinding: { entity: anchorEntityID },
                 anchorRotationBinding: { entity: anchorEntityID },
-                //anchorPositionBinding: { avatar: "MyAvatar"},
-                //anchorRotationBinding: { avatar: "MyAvatar" },
-                
-                //anchorPosition: Entities.getEntityProperties(_this.entityID).position,
-                //offsetPosition: Vec3.subtract(Entities.getEntityProperties(_this.entityID).position, MyAvatar.position),
                 
                 isFacingAvatar: false
             });
@@ -408,7 +401,6 @@
                     },
                     emissive: true,
                 });
-                print("button added");
                 mainPanel.addChild(buttons[i]);
             }
             
@@ -439,8 +431,6 @@
             
             cameraPanel = new OverlayPanel({
                 anchorPositionBinding: { entity: cameraEntity },
-                //anchorRotationBinding: { entity: cameraEntity },
-                
                 isFacingAvatar: false
             });
             
@@ -461,21 +451,17 @@
                     emissive: true,
                     visible: false,
                 });
-            print("OnAir added");
             cameraPanel.addChild(onAirOverlay);
                 
             isUIWorking = true;
         },
         
         cleanUI: function () {
-            print("massive clean");
             workingHand.clean();
             if (mainPanel) {
                 mainPanel.destroy();
-                //cameraPanel.destroy();
             }
             mainPanel = null;
-            //cameraPanel = null;
             isUIWorking = false;
         },
 
