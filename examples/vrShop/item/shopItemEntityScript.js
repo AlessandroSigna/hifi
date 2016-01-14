@@ -347,7 +347,7 @@
         
         },
 
-        //Analising the collisions we can define the value of zoneID
+        //Analysing the collisions we can define the value of zoneID
         collisionWithEntity: function(myID, otherID, collisionInfo) {
             var penetrationValue = Vec3.length(collisionInfo.penetration);
             if (penetrationValue > PENETRATION_THRESHOLD && zoneID === null) {

@@ -245,7 +245,7 @@
         }
     };
     
-    // Find items in the zone. It return a not null value if an item belonging to the user it's found AND if a cart belonging to him it's not found
+    // Find items in the zone. It returns a not null value if an item belonging to the user is found AND if a cart belonging to him is not found
     function findItemToReview(searchingPointEntityID) {
         var foundItemToReviewID = null;
         var entitiesInZone = Entities.findEntities(Entities.getEntityProperties(searchingPointEntityID).position, 5); 
