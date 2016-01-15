@@ -16,6 +16,7 @@
 
 (function() {
     
+    
     var utilitiesScript = Script.resolvePath("../../libraries/utils.js");
     var overlayManagerScript = Script.resolvePath("../../libraries/overlayManager.js");
     Script.include(utilitiesScript);

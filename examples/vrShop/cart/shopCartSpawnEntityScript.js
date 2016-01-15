@@ -39,6 +39,8 @@
                 if (properties.name == CART_MASTER_NAME) {
                     cartMasterID = id;
                     print("Master Cart found");
+                    Entities.editEntity(_this.entityID, { collisionMask: "static,dynamic,otherAvatar" });
+                    
                     return;
                 }
             });

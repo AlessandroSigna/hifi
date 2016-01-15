@@ -1,4 +1,13 @@
-// Set the following variables to the values needed
+// shopCashierAC.js
+//
+
+//  Created by Alessandro Signa and Edgar Pironti on 01/13/2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+
+// Set the following variable to the values needed
 var clip_url = "atp:6865d9c89472d58b18929aff0ac779026bc129190f7536f71d3835f7e2629c93.hfr"; // This url is working in VRshop
 
 
@@ -14,7 +23,7 @@ var WAIT_FOR_AUDIO_MIXER = 1;
 
 var PLAY = "Play";
 
-function getAction(channel, message, senderID) {    
+function getAction(channel, message, senderID) {
     if(subscribed) {
         print("I'm the agent and I received this: " + message);
         
@@ -50,7 +59,6 @@ function update(deltaTime) {
             Recording.setPlayerUseHeadModel(false);
             Recording.setPlayerUseSkeletonModel(useAvatarModel);
             Agent.isAvatar = true;
-            print("------------------        I'm the agent and I am ready to receive!");
         }
     }
 

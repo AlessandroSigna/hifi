@@ -4,6 +4,7 @@
 //  The first time the item is grabbed a copy of itself is created on the shelf.
 //  If the item isn't held by the user it can be inInspect or inCart, otherwise it's destroyed
 //  The start and release grab methods handle the creation of the item copy, UI, inspection entity
+//  If the item is released into a valid zone, the doSomething() method of that zone is called and the item sends its ID
 
 //  Created by Alessandro Signa and Edgar Pironti on 01/13/2016
 //  Copyright 2016 High Fidelity, Inc.

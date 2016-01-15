@@ -58,6 +58,7 @@ if (accepted) {
         rotation: rotation,
         collisionsWillMove: false,
         ignoreForCollisions: true,
+        collisionMask: "static,dynamic,otherAvatar",
         shapeType: "box",
         modelURL: modelURL,
         userData: JSON.stringify({
